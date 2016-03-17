@@ -1,0 +1,18 @@
+{
+  "author": "Vibhaj Rjana <vibhaj8@gmail.com> (http://vibhaj.com)",
+  "name": "reverse-proxy",
+  "description": "Reverse SOCKS5 proxy",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/tr4n2uil/reverse-proxy.git"
+  },
+  "keywords": ["socks"],
+  "main": "reverse.js",
+  "dependencies": {},
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  }
+}
