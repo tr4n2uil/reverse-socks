@@ -1,0 +1,15 @@
+{
+  "socksVersion": 5,
+  "CODE": {
+    "register": 1,
+    "request": 2,
+    "accept": 3
+  },
+  "REGISTRY": {},
+  "defaultID": 3,
+  "STATES": { 
+    "handshake": 0, 
+    "request": 1, 
+    "forwarding": 2
+  }
+}
