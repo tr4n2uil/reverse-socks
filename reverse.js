@@ -2,10 +2,11 @@
 var net = require('net')
   , util = require('util')
   , EventEmitter = require('events').EventEmitter
+  , constants = require('./constants')
 
 var debugOut = console.log.bind(console)
 
-module.exports = function(port, host, remote, backlog, debug) {
+module.exports.Server = function(port, host, remote, backlog, debug) {
   if(!port) port = 8080
   if(!host) host = '127.0.0.1'
   if(typeof remote === 'boolean') {
@@ -42,7 +43,7 @@ function Client(id){
 
   this.request = function(callback){
     var sock = this.next();
-    sock.write(new Buffer([Reverse.requestCode, this.id]))
+    sock.write(new Buffer([constants.CODE.request, this.id]))
     this.requests.push(callback)
   }
 
@@ -54,6 +55,38 @@ function Client(id){
   this.remove = function(socket){
     self.sockets.splice(self.sockets.indexOf(socket), 0);
   }  
+}
+
+module.exports.Client = Client;
+
+module.exports.forwardLocal = function(buffer, tunnel, remote, server){
+  var id = buffer[1];
+
+  console.log("requestCode", buffer)
+  var connected = false;
+  var dest = net.createConnection(remote.port, remote.host, function() {
+    server.handleConnection(dest);
+    dest.write(new Buffer([0x03, id]))
+  }).once('error', function(err) {
+    if(!connected) {
+      //tunnel.end(new Buffer([0x05, 0x01]))
+    }
+  }).once('close', function() {
+    if(!connected) {
+      //tunnel.end()
+    }
+  })
+
+  // var rClient = constants.REGISTRY[id] || new exports.Client(id);
+  // rClient.add(client);
+  // client.on('error', function(){
+  //   rClient.remove(client);
+  // });
+  // contants.REGISTRY[id] = rClient;
+
+  // var sock = net.createConnection(local.port, local.host, function() {
+  //   sock.write(buffer);
+  // })
 }
 
 function Reverse(port, host, remote, backlog, debug) {
@@ -81,21 +114,8 @@ function Reverse(port, host, remote, backlog, debug) {
 }
 util.inherits(Reverse, EventEmitter);
 
-Reverse.socksVersion = 5
-
-Reverse.registerCode = 1
-Reverse.requestCode = 2
-Reverse.acceptCode = 3
-Reverse.registeredClients = {}
-
-Reverse.defaultID = 3
-
-var STATES =  { handshake: 0
-              , request: 1
-              , forwarding: 2
-              }
 Reverse.prototype.handleConnection = function(client) {
-  var curState = STATES.handshake
+  var curState = constants.STATES.handshake
     , handlers = {}
     , self = this
 
@@ -109,67 +129,70 @@ Reverse.prototype.handleConnection = function(client) {
   }).on('data', onClientData)
 
   var buffer = null
-  handlers[STATES.handshake] = function(chunk) {
+  handlers[constants.STATES.handshake] = function(chunk) {
     buffer = expandAndCopy(buffer, chunk)
     if(buffer.length < 2) return
 
     var firstByte = buffer[0];
     console.log("Handshake", buffer)
-    if(firstByte == Reverse.registerCode){
+    if(firstByte == constants.CODE.register){
       var id = buffer[1];
 
-      var rClient = Reverse.registeredClients[id] || new Client(id);
+      var rClient = constants.REGISTRY[id] || new Client(id);
       rClient.add(client);
       client.on('error', function(){
         rClient.remove(client);
       });
-      Reverse.registeredClients[id] = rClient;
+      constants.REGISTRY[id] = rClient;
     }
-    else if(firstByte == Reverse.requestCode){
-      var id = buffer[1];
+    else if(firstByte == constants.CODE.request){
+      // var id = buffer[1];
 
-      console.log("requestCode", buffer)
-      var connected = false;
-      var dest = net.createConnection(self.remote.port, self.remote.host, function() {
-        dest.write(new Buffer([Reverse.acceptCode, id]))
-        var newChunk = false;
-        if(buffer.length > 2){
-          var newChunk = buffer.slice(2)
-          buffer = null
-        }
-        buffer = null
-        var local = net.createConnection(self.local.port, self.local.host, function() {
-          console.log("Piping dest to local", newChunk)
-          if(newChunk) local.emit('data', newChunk)
-          dest.pipe(local);
-          local.pipe(dest);
-        })
-      }).once('error', function(err) {
-        if(!connected) {
-          client.end(new Buffer([0x05, 0x01]))
-        }
-      }).once('close', function() {
-        if(!connected) {
-          client.end()
-        }
-      })
+      // console.log("requestCode", buffer)
+      // var connected = false;
+      // var dest = net.createConnection(self.remote.port, self.remote.host, function() {
+      //   dest.write(new Buffer([Reverse.acceptCode, id]))
+      //   var newChunk = false;
+      //   if(buffer.length > 2){
+      //     var newChunk = buffer.slice(2)
+      //     buffer = null
+      //   }
+      //   buffer = null
+      //   dest.removeListener('data', onClientData);
 
-      var rClient = Reverse.registeredClients[id] || new Client(id);
-      rClient.add(client);
-      client.on('error', function(){
-        rClient.remove(client);
-      });
-      Reverse.registeredClients[id] = rClient;
+      //   var local = net.createConnection(self.local.port, self.local.host, function() {
+      //     console.log("Piping dest to local", newChunk)
+      //     if(newChunk) local.emit('data', newChunk)
+      //     dest.pipe(local);
+      //     local.pipe(dest);
+      //   })
+      // }).once('error', function(err) {
+      //   if(!connected) {
+      //     client.end(new Buffer([0x05, 0x01]))
+      //   }
+      // }).once('close', function() {
+      //   if(!connected) {
+      //     client.end()
+      //   }
+      // })
+
+      // var rClient = Reverse.registeredClients[id] || new Client(id);
+      // rClient.add(client);
+      // client.on('error', function(){
+      //   rClient.remove(client);
+      // });
+      // Reverse.registeredClients[id] = rClient;
     }
-    else if(firstByte == Reverse.acceptCode){
+    else if(firstByte == constants.CODE.accept){
       var id = buffer[1];
-      var rClient = Reverse.registeredClients[id];
+      var rClient = constants.REGISTRY[id];
       if(!rClient) return;
 
       client.removeListener('data', onClientData);
+      console.log("Got accept", id);
       rClient.serve(client);
     }
-    else if(firstByte != Reverse.socksVersion) {
+    else if(firstByte != constants.socksVersion) {
       self._debug('unsupported client version: %d', socksVersion)
       return client.end()
     }
@@ -184,9 +207,9 @@ Reverse.prototype.handleConnection = function(client) {
         if(!self.remote && buffer.length > nMethods + 2) {
           var newChunk = buffer.slice(nMethods + 2)
           buffer = null
-          handlers[STATES.request](newChunk)
+          handlers[constants.STATES.request](newChunk)
         }
-        else if(self.remote) handlers[STATES.request](buffer)
+        else if(self.remote) handlers[constants.STATES.request](buffer)
         buffer = null
         return
       }
@@ -197,13 +220,13 @@ Reverse.prototype.handleConnection = function(client) {
   }
 
   var proxyBuffers = []
-  handlers[STATES.request] = function(chunk) {
+  handlers[constants.STATES.request] = function(chunk) {
     buffer = expandAndCopy(buffer, chunk);
     console.log("request", buffer);
     if(buffer.length < 4) return
 
     var socksVersion = buffer[0];
-    if(socksVersion != Reverse.socksVersion) {
+    if(socksVersion != constants.socksVersion) {
       self._debug('unsupported client version: %d', socksVersion)
       return client.end()
     }
@@ -278,11 +301,12 @@ Reverse.prototype.handleConnection = function(client) {
     }
 
     if(self.remote){
+      console.log("Connecting to ", host, port)
       var dest = net.createConnection(port, host, function() {
         responseBuf[1] = 0
         responseBuf[2] = 0
-        client.write(responseBuf) // emit success to client
         console.log("response", responseBuf);
+        client.write(responseBuf) // emit success to client
         
         doneCallback(dest);
       }).once('error', function(err) {
@@ -296,7 +320,7 @@ Reverse.prototype.handleConnection = function(client) {
       })
     }
     else {
-      var rClient = Reverse.registeredClients[Reverse.defaultID];
+      var rClient = constants.REGISTRY[constants.defaultID];
         if(!rClient) return;
 
       rClient.request(doneCallback)
@@ -304,7 +328,7 @@ Reverse.prototype.handleConnection = function(client) {
     client.pause()
   }
 
-  handlers[STATES.forwarding] = function (chunk) {
+  handlers[constants.STATES.forwarding] = function (chunk) {
     proxyBuffers.push(chunk);
   }
 }

@@ -1,37 +1,30 @@
 var reverse = require('./reverse'),
-  net = require('net');
+  net = require('net'),
+  constants = require('./constants');
 
 var remote = {host: '127.0.0.1', port: 5050}
 var local = {host: '127.0.0.1', port: 5060}
 
-var server = reverse(local.port, local.host, remote, true);
+var server = reverse.Server(local.port, local.host, remote, true);
 server.on('connected', function(req, dest) {
   req.pipe(dest);
   dest.pipe(req);
 });
 
-var connected = false;
-
-var forwardLocal = function(buffer){
-  var sock = net.createConnection(local.port, local.host, function() {
-    sock.write(buffer);
-  })
-}
-
 var tunnel = net.createConnection(remote.port, remote.host, function() {
   console.log("Connected to tunnel", remote);
-  tunnel.write(new Buffer([0x01, 0x03]))
+  tunnel.write(new Buffer([0x01, constants.CODE.accept]))
   var buff = null;
   tunnel.on('data', function(buffer){
     console.log("Data", buffer);
     var i=0;
     if(buff && buffer.length > 0){
-      forwardLocal(new Buffer([buff, buffer[0]]));
+      reverse.forwardLocal(new Buffer([buff, buffer[0]]), tunnel, remote, server);
       i++;
       buff = null;
     } 
     for(; i+1<buffer.length; i+=2){
-      forwardLocal(new Buffer([buffer[i], buffer[i+1]]));  
+      reverse.forwardLocal(new Buffer([buffer[i], buffer[i+1]]), tunnel, remote, server);  
     }
     if(i+1 != buffer.length) buff = buffer[i];
   })
