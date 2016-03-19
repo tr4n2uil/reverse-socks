@@ -22,13 +22,14 @@ module.exports.Server = function(port, host, remote, backlog, debug) {
   return new Reverse(port, host, remote, backlog, debug)
 }
 
-function Client(id){
+function Client(id, wss){
   var self = this
 
   this.id = id
   this.sockets = []
   this.index = 0
   this.requests = [];
+  this.wss = wss;
 
   this.add = function(socket){
     self.sockets.push(socket)
@@ -43,7 +44,11 @@ function Client(id){
 
   this.request = function(callback){
     var sock = this.next();
-    sock.write(new Buffer([constants.CODE.request, this.id]))
+    var data = new Buffer([constants.CODE.request, this.id])
+    if(this.wss)
+      sock.send(data, {binary: true})
+    else
+      sock.write(data)
     this.requests.push(callback)
   }
 
@@ -283,6 +288,7 @@ Reverse.prototype.handleConnection = function(client) {
 
     var connected = false
     var doneCallback = function(dest){
+      console.log("doneCallback called", dest._handle.fd);
       client.removeListener('data', onClientData)
 
       client.resume()

@@ -7,9 +7,14 @@
     "type": "git",
     "url": "git://github.com/tr4n2uil/reverse-proxy.git"
   },
-  "keywords": ["socks"],
+  "keywords": [
+    "socks"
+  ],
   "main": "reverse.js",
-  "dependencies": {},
+  "dependencies": {
+    "bufferutil": "^1.2.1",
+    "ws": "^1.0.1"
+  },
   "devDependencies": {},
   "optionalDependencies": {},
   "engines": {
