@@ -193,7 +193,7 @@ Reverse.prototype.handleConnection = function(client) {
       rClient.serve(client);
     }
     else if(firstByte != constants.socksVersion) {
-      self._debug('unsupported client version: %d', socksVersion)
+      self._debug('unsupported client version: %d', constants.socksVersion)
       return client.end()
     }
 
