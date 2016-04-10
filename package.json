@@ -12,6 +12,7 @@
   ],
   "main": "reverse.js",
   "dependencies": {
+    "argyle": "0.0.2",
     "bufferutil": "^1.2.1",
     "ws": "^1.0.1"
   },
