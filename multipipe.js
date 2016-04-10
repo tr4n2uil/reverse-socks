@@ -74,13 +74,13 @@ exports.readMultiPipe = function(source, dest, handshake){
     switch(buffer[0]){
       case CODES.REMOTE_END:
         console.log("[INFO] Read Socket: " + curRef + " End")
-        curSocket.end()
+        if(curSocket) curSocket.end()
         delete sockets[curRef]
         break
 
       case CODES.REMOTE_ERROR:
         console.log("[INFO] Read Socket: " + curRef + " Error")
-        curSocket.destroy()
+        if(curSocket) curSocket.destroy()
         delete sockets[curRef]
         break
 
@@ -121,8 +121,10 @@ exports.readMultiPipe = function(source, dest, handshake){
     if(buffer.length < curLength) return
 
     console.log("[INFO] Read Socket: " + curRef + " Length: " + curLength + " Buffer " + buffer)
-
-    curSocket.write(buffer)
+    var newBuf = new Buffer(curLength)
+    buffer.copy(newBuf, 0, 0, curLength)
+    if(curSocket)
+      curSocket.write(newBuf)
 
     buffer = buffer.slice(curLength)
     curState = STATES.STARTED
