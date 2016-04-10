@@ -96,7 +96,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     if(buffer.length > 0){
       var newChunk = buffer
       buffer = null
-      onClientData(newChunk)
+      setImmediate(function(){ onClientData(newChunk) });
     }
   }
 
@@ -112,7 +112,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     if(buffer.length > 0){
       var newChunk = buffer
       buffer = null
-      onClientData(newChunk)
+      setImmediate(function(){ onClientData(newChunk) });
     }
   }
 
@@ -133,7 +133,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     if(buffer.length > 0){
       var newChunk = buffer
       buffer = null
-      onClientData(newChunk)
+      setImmediate(function(){ onClientData(newChunk) });
     }
   }
 }
