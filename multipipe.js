@@ -129,6 +129,12 @@ exports.readMultiPipe = function(source, dest, handshake){
     buffer = buffer.slice(curLength)
     curState = STATES.STARTED
     curLength = 0
+
+    if(buffer.length > 0){
+      var newChunk = buffer
+      buffer = null
+      onClientData(newChunk)
+    }
   }
 }
 
