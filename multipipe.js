@@ -143,7 +143,7 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets){
     if (dest.writable) {
       if (false === dest.write(chunk) && source.pause) {
         console.log("Pausing")
-        source.pause();
+        //source.pause();
       }
     }
   }
@@ -179,10 +179,10 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets){
     ondata(buf)
   })
 
-  dest.on('drain', function() {
-    if (source.readable && source.resume) {
-      console.log("Resuming")
-      source.resume();
-    }
-  });
+  // dest.on('drain', function() {
+  //   if (source.readable && source.resume) {
+  //     console.log("Resuming")
+  //     source.resume();
+  //   }
+  // });
 }
