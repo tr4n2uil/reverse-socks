@@ -75,11 +75,13 @@ exports.readMultiPipe = function(source, dest, handshake){
       case CODES.REMOTE_END:
         console.log("[INFO] Read Socket: " + curRef + " End")
         curSocket.end()
+        delete sockets[curRef]
         break
 
       case CODES.REMOTE_ERROR:
         console.log("[INFO] Read Socket: " + curRef + " Error")
         curSocket.destroy()
+        delete sockets[curRef]
         break
 
       case CODES.REMOTE_DATA:
@@ -134,7 +136,7 @@ exports.readMultiPipe = function(source, dest, handshake){
   }
 }
 
-exports.writeMultiPipe = function(source, dest, destRef){
+exports.writeMultiPipe = function(source, dest, destRef, sockets){
   function ondata(chunk) {
     if (dest.writable) {
       if (false === dest.write(chunk) && source.pause) {
@@ -151,6 +153,7 @@ exports.writeMultiPipe = function(source, dest, destRef){
 
     console.log("[INFO] Write Socket: " + destRef + " End")
     ondata(buf)
+    delete sockets[destRef]
   })
   
   source.on('error', function(err){
@@ -160,6 +163,7 @@ exports.writeMultiPipe = function(source, dest, destRef){
 
     console.log("[INFO] Write Socket: " + destRef + " Error :" + err)
     ondata(buf)
+    delete sockets[destRef]
   })
 
   source.on('data', function(chunk){

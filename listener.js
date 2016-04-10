@@ -75,7 +75,7 @@ listener.on('connection', function(client) {
     var remoteRef = ++socketRef;
     sockets[remoteRef] = remote;
 
-    multipipe.writeMultiPipe(remote, client, remoteRef)
+    multipipe.writeMultiPipe(remote, client, remoteRef, sockets)
   })
 })
 
