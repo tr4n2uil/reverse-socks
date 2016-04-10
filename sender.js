@@ -40,12 +40,13 @@ var remote = net.createConnection(listenerPort, listenerHost, function() {
   var dest = {
     sockets: {},
     socketRef: 0,
+    buffers: {},
     create: function(curRef){
       var client = net.createConnection(senderPort, "localhost", function(){
         console.log("new connection socket to sender", curRef, senderPort);
       })
 
-      multipipe.writeMultiPipe(client, remote, curRef, dest.sockets)
+      multipipe.writeMultiPipe(client, remote, curRef, dest.sockets, dest.buffers)
       return client
     }
   }

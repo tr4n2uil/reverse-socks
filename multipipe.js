@@ -22,6 +22,8 @@ var ERRORS = {
 }
 exports.ERRORS = ERRORS
 
+var load = 255;
+
 var expandAndCopy = function(old, newer) {
   if(!old) return newer;
   var newBuf = new Buffer(old.length + newer.length);
@@ -40,7 +42,8 @@ exports.readMultiPipe = function(source, dest, handshake){
     handlers = {},
     self = this,
     sockets = dest.sockets,
-    socketRef = dest.socketRef
+    socketRef = dest.socketRef,
+    buffers = dest.buffers
 
   function onClientData(chunk) {
     //console.log("Chunk", curState, chunk);
@@ -67,6 +70,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     //console.log("got curRef", curRef)
     if(typeof sockets[curRef] == "undefined" && dest.create){
       sockets[curRef] = dest.create(curRef);
+      buffers[curRef] = [];
     }
     curSocket = sockets[curRef];
 
@@ -76,12 +80,14 @@ exports.readMultiPipe = function(source, dest, handshake){
         console.log("[INFO] Read Socket: " + curRef + " End")
         if(curSocket) curSocket.end()
         delete sockets[curRef]
+        delete buffers[curRef]
         break
 
       case CODES.REMOTE_ERROR:
         console.log("[INFO] Read Socket: " + curRef + " Error")
         if(curSocket) curSocket.destroy()
         delete sockets[curRef]
+        delete buffers[curRef]
         break
 
       case CODES.REMOTE_DATA:
@@ -102,13 +108,13 @@ exports.readMultiPipe = function(source, dest, handshake){
 
   handlers[STATES.LENGTH] = function (chunk){
     buffer = expandAndCopy(buffer, chunk)
-    if(buffer.length < 4) return
+    if(buffer.length < 1) return
 
-    curLength = buffer.readUInt32BE(0)
+    curLength = buffer.readUInt8(0)
     curState++
 
     //console.log("got curLength", curLength)
-    buffer = buffer.slice(4)
+    buffer = buffer.slice(1)
     if(buffer.length > 0){
       var newChunk = buffer
       buffer = null
@@ -138,13 +144,22 @@ exports.readMultiPipe = function(source, dest, handshake){
   }
 }
 
-exports.writeMultiPipe = function(source, dest, destRef, sockets){
+exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
   function ondata(chunk) {
     if (dest.writable) {
-      if (false === dest.write(chunk) && source.pause) {
-        console.log("Pausing")
-        //source.pause();
+      var next = false
+      for(var i in buffers){
+        if(buffers[i].length){
+          var buf = buffers[i].shift()
+          dest.write(buf)
+          if(buffers[i].length) next = true
+        }
       }
+      if(next) setTimeout(ondata, 5)
+      // if (false === dest.write(chunk) && source.pause) {
+      //   console.log("Pausing")
+      //   source.pause();
+      // }
     }
   }
 
@@ -155,7 +170,9 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets){
 
     console.log("[INFO] Write Socket: " + destRef + " End")
     ondata(buf)
+    buffers[destRef].push(buf);
     delete sockets[destRef]
+    delete buffers[destRef]
   })
   
   source.on('error', function(err){
@@ -165,15 +182,33 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets){
 
     console.log("[INFO] Write Socket: " + destRef + " Error :" + err)
     ondata(buf)
+    buffers[destRef].push(buf);
     delete sockets[destRef]
+    delete buffers[destRef]
   })
 
   source.on('data', function(chunk){
-    var buf = new Buffer(9 + chunk.length);
-    buf.writeUInt8(CODES.REMOTE_DATA, 0);
-    buf.writeUInt32BE(destRef, 1);
-    buf.writeUInt32BE(chunk.length, 5);
-    chunk.copy(buf, 9)
+    if(chunk && chunk.length > load){
+      var i,j;
+      for (i=0, j=chunk.length; i<j; i+=load) {
+        var tmpChunk = chunk.slice(i,i+load);
+        var buf = new Buffer(6 + tmpChunk.length);
+        buf.writeUInt8(CODES.REMOTE_DATA, 0);
+        buf.writeUInt32BE(destRef, 1);
+        buf.writeUInt8(tmpChunk.length, 5);
+        tmpChunk.copy(buf, 6)
+
+        buffers[destRef].push(buf);
+      }
+    }
+    else {
+      var buf = new Buffer(6 + chunk.length);
+      buf.writeUInt8(CODES.REMOTE_DATA, 0);
+      buf.writeUInt32BE(destRef, 1);
+      buf.writeUInt8(chunk.length, 5);
+      chunk.copy(buf, 6)
+      buffers[destRef].push(buf)
+    }
 
     //console.log("[INFO] Write Socket: " + destRef + " Length: " + chunk.length + " Buffer " + buf)
     ondata(buf)

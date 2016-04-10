@@ -35,7 +35,8 @@ listener.on('listening', function() {
 listener.on('connection', function(client) {
   var server = net.createServer(),
     sockets = {},
-    socketRef = 0
+    socketRef = 0,
+    buffers = {}
 
   function cleanup(){
     server.close();
@@ -74,8 +75,9 @@ listener.on('connection', function(client) {
   server.on('connection', function(remote) {
     var remoteRef = ++socketRef;
     sockets[remoteRef] = remote;
+    buffers[remoteRef] = [];
 
-    multipipe.writeMultiPipe(remote, client, remoteRef, sockets)
+    multipipe.writeMultiPipe(remote, client, remoteRef, sockets, buffers)
   })
 })
 
