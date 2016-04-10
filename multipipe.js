@@ -120,7 +120,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     buffer = expandAndCopy(buffer, chunk)
     if(buffer.length < curLength) return
 
-    console.log("[INFO] Read Socket: " + curRef + " Length: " + curLength + " Buffer " + buffer)
+    //console.log("[INFO] Read Socket: " + curRef + " Length: " + curLength + " Buffer " + buffer)
     var newBuf = new Buffer(curLength)
     buffer.copy(newBuf, 0, 0, curLength)
     if(curSocket)
@@ -175,7 +175,7 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets){
     buf.writeUInt32BE(chunk.length, 5);
     chunk.copy(buf, 9)
 
-    console.log("[INFO] Write Socket: " + destRef + " Length: " + chunk.length + " Buffer " + buf)
+    //console.log("[INFO] Write Socket: " + destRef + " Length: " + chunk.length + " Buffer " + buf)
     ondata(buf)
   })
 
