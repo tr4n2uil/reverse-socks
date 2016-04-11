@@ -151,7 +151,12 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
       for(var i in buffers){
         if(buffers[i].length){
           var buf = buffers[i].shift()
-          dest.write(buf)
+          if(Array.isArray(buf)){
+            dest.write(buf[0])
+            dest.write(buf[1])
+          }
+          else 
+            dest.write(buf)
           if(buffers[i].length) next = true
         }
       }
@@ -188,24 +193,23 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
   })
 
   source.on('data', function(chunk){
-    var j = 4*chunk.length/5;
+    var j = chunk.length/2;
 
     var tmpChunk = chunk.slice(0,j);
-    var buf = new Buffer(7 + tmpChunk.length);
+    var buf = new Buffer(7);
     buf.writeUInt8(CODES.REMOTE_DATA, 0);
     buf.writeUInt32BE(destRef, 1);
     buf.writeUInt16BE(tmpChunk.length, 5);
-    tmpChunk.copy(buf, 7)
 
-    buffers[destRef].push(buf);
+    buffers[destRef].push([buf, tmpChunk]);
 
     tmpChunk = chunk.slice(j);
-    var buf = new Buffer(7 + tmpChunk.length);
+    var buf = new Buffer(7);
     buf.writeUInt8(CODES.REMOTE_DATA, 0);
     buf.writeUInt32BE(destRef, 1);
     buf.writeUInt16BE(tmpChunk.length, 5);
-    tmpChunk.copy(buf, 7)
-    buffers[destRef].push(buf)
+    //tmpChunk.copy(buf, 7)
+    buffers[destRef].push([buf, tmpChunk])
 
     //console.log("[INFO] Write Socket: " + destRef + " Length: " + chunk.length + " Buffer " + buf)
     ondata(buf)
