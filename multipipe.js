@@ -148,11 +148,17 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
   function ondata(chunk) {
     if (dest.writable) {
       var next = false
+      var j = 0;
       for(var i in buffers){
         if(buffers[i].length){
+          j++;
           var buf = buffers[i].shift()
           dest.write(buf)
           if(buffers[i].length) next = true
+          if(j > 10){
+            next = true
+            break
+          }
         }
       }
       if(next) setTimeout(ondata, 0)
@@ -188,7 +194,7 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
   })
 
   source.on('data', function(chunk){
-    var j = chunk.length/2;
+    var j = 2*chunk.length/3;
 
     var tmpChunk = chunk.slice(0,j);
     var buf = new Buffer(7 + tmpChunk.length);
