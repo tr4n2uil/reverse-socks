@@ -237,10 +237,10 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     //console.log("[INFO] Write Socket: " + destRef + " Length: " + chunk.length + " Buffer " + buf + chunk)
   })
 
-  dest.on('drain', function() {
+  /*dest.on('drain', function() {
     //if (source.readable && source.resume) {
       console.log("Resuming")
       //source.resume();
     //}
-  });
+  });*/
 }
