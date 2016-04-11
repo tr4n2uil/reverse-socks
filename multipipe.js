@@ -70,7 +70,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     buffers = dest.buffers
 
   function onClientData(chunk) {
-    source.pause()
+    console.log("Got other data", chunk.length)
     //console.log("Chunk", curState, chunk);
     handlers[curState](chunk)
   }
@@ -94,7 +94,8 @@ exports.readMultiPipe = function(source, dest, handshake){
     var expectedLength = 5 - (buffer ? buffer.length : 0);
     var lastChunk = chunk.slice(expectedLength)
     buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
-    if(buffer.length < 5) return source.resume()
+    if(buffer.length < 5) return
+    source.pause()
 
     curRef = buffer.readUInt32BE(1)
     //console.log("got curRef", curRef, buffer, lastChunk)
@@ -141,7 +142,8 @@ exports.readMultiPipe = function(source, dest, handshake){
     var expectedLength = 2 - (buffer ? buffer.length : 0);
     var lastChunk = chunk.slice(expectedLength)
     buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
-    if(buffer.length < 2) return source.resume()
+    if(buffer.length < 2) return
+    source.pause()
 
     curLength = buffer.readUInt16BE(0)
     curState++
@@ -160,15 +162,15 @@ exports.readMultiPipe = function(source, dest, handshake){
     var expectedLength = curLength - (buffer ? buffer.length : 0);
     var lastChunk = chunk.slice(expectedLength)
     buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
-    if(buffer.length < curLength) return source.resume()
+    //if(buffer.length < curLength) return source.resume()
     //console.log("[INFO] Read Socket: " + curRef + " Length: " + curLength + " Buffer " + buffer)
     //var newBuf = buffer.slice(0, curLength)
     //buffer.copy(newBuf, 0, 0, curLength)
     if(curSocket)
       writeData(buffer, curSocket, source)
 
-    curState = STATES.STARTED
-    curLength = 0
+    curLength = curLength - buffer.length
+    if(curLength == 0) curState = STATES.STARTED
 
     buffer = null
     if(lastChunk && lastChunk.length > 0){
@@ -206,6 +208,8 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
   })
 
   source.on('data', function(chunk){
+    console.log("Got data", destRef, chunk.length)
+    dest.resume()
     source.pause()
     var buf = new Buffer(7);
     buf.writeUInt8(CODES.REMOTE_DATA, 0);
@@ -213,7 +217,7 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     buf.writeUInt16BE(chunk.length, 5);
     writeData(buf, dest, source)
     writeData(chunk, dest, source)
-    source.resume();
+    source.resume()
 
     /*var j = chunk.length/2;
 
