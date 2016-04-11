@@ -91,6 +91,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     var lastChunk = chunk.slice(expectedLength)
     buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
     if(buffer.length < 5) return
+    source.pause()
 
     curRef = buffer.readUInt32BE(1)
     //console.log("got curRef", curRef, buffer, lastChunk)
@@ -128,6 +129,9 @@ exports.readMultiPipe = function(source, dest, handshake){
     if(lastChunk && lastChunk.length > 0){
       onClientData(lastChunk)
     }
+    else {
+      source.resume()
+    }
   }
 
   handlers[STATES.LENGTH] = function (chunk){
@@ -135,6 +139,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     var lastChunk = chunk.slice(expectedLength)
     buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
     if(buffer.length < 2) return
+    source.pause()
 
     curLength = buffer.readUInt16BE(0)
     curState++
@@ -144,6 +149,9 @@ exports.readMultiPipe = function(source, dest, handshake){
     if(lastChunk && lastChunk.length > 0){
       onClientData(lastChunk)
     }
+    else {
+      source.resume()
+    }
   }
 
   handlers[STATES.DATA] = function (chunk){
@@ -151,7 +159,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     var lastChunk = chunk.slice(expectedLength)
     buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
     if(buffer.length < curLength) return
-
+    source.pause()
     //console.log("[INFO] Read Socket: " + curRef + " Length: " + curLength + " Buffer " + buffer)
     //var newBuf = buffer.slice(0, curLength)
     //buffer.copy(newBuf, 0, 0, curLength)
@@ -166,7 +174,7 @@ exports.readMultiPipe = function(source, dest, handshake){
       onClientData(lastChunk)
     }
     else {
-      source.emit('drain')
+      source.resume()
     }
   }
 }
@@ -197,14 +205,14 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
   })
 
   source.on('data', function(chunk){
+    source.pause()
     var buf = new Buffer(7);
     buf.writeUInt8(CODES.REMOTE_DATA, 0);
     buf.writeUInt32BE(destRef, 1);
     buf.writeUInt16BE(chunk.length, 5);
     writeData(buf, dest, source)
     writeData(chunk, dest, source)
-    console.log("Pausing")
-    source.pause();
+    source.resume();
 
     /*var j = chunk.length/2;
 
