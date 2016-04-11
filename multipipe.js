@@ -165,6 +165,9 @@ exports.readMultiPipe = function(source, dest, handshake){
     if(lastChunk && lastChunk.length > 0){
       onClientData(lastChunk)
     }
+    else {
+      source.emit('drain')
+    }
   }
 }
 
@@ -200,6 +203,8 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     buf.writeUInt16BE(chunk.length, 5);
     writeData(buf, dest, source)
     writeData(chunk, dest, source)
+    console.log("Pausing")
+    source.pause();
 
     /*var j = chunk.length/2;
 
@@ -224,9 +229,9 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
   })
 
   dest.on('drain', function() {
-    if (source.readable && source.resume) {
+    //if (source.readable && source.resume) {
       console.log("Resuming")
       source.resume();
-    }
+    //}
   });
 }
