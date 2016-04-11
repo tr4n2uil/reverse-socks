@@ -46,7 +46,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     buffers = dest.buffers
 
   function onClientData(chunk) {
-    //console.log("Chunk", curState, chunk);
+    console.log("Chunk", curState, chunk);
     handlers[curState](chunk)
   }
 
@@ -63,18 +63,20 @@ exports.readMultiPipe = function(source, dest, handshake){
   }
 
   handlers[STATES.STARTED] = function (chunk){
-    buffer = expandAndCopy(buffer, chunk)
+    var expectedLength = 5 - (buffer ? buffer.length : 0);
+    var lastChunk = chunk.slice(expectedLength)
+    buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
     if(buffer.length < 5) return
 
     curRef = buffer.readUInt32BE(1)
-    //console.log("got curRef", curRef)
+    console.log("got curRef", curRef, buffer, lastChunk)
     if(typeof sockets[curRef] == "undefined" && dest.create){
       sockets[curRef] = dest.create(curRef);
       //buffers[curRef] = [];
     }
     curSocket = sockets[curRef];
 
-    //console.log("checking event type", buffer[0])
+    console.log("checking event type", buffer[0])
     switch(buffer[0]){
       case CODES.REMOTE_END:
         console.log("[INFO] Read Socket: " + curRef + " End")
@@ -98,48 +100,46 @@ exports.readMultiPipe = function(source, dest, handshake){
         console.log("[WARN] Didnt match any :(")
     }
 
-    buffer = buffer.slice(5)
-    if(buffer.length > 0){
-      var newChunk = buffer
-      buffer = null
-      onClientData(newChunk)
+    buffer = null
+    if(lastChunk && lastChunk.length > 0){
+      onClientData(lastChunk)
     }
   }
 
   handlers[STATES.LENGTH] = function (chunk){
-    buffer = expandAndCopy(buffer, chunk)
+    var expectedLength = 2 - (buffer ? buffer.length : 0);
+    var lastChunk = chunk.slice(expectedLength)
+    buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
     if(buffer.length < 2) return
 
     curLength = buffer.readUInt16BE(0)
     curState++
 
-    //console.log("got curLength", curLength)
-    buffer = buffer.slice(2)
-    if(buffer.length > 0){
-      var newChunk = buffer
-      buffer = null
-      onClientData(newChunk)
+    console.log("got curLength", curLength, buffer, lastChunk)
+    buffer = null
+    if(lastChunk && lastChunk.length > 0){
+      onClientData(lastChunk)
     }
   }
 
   handlers[STATES.DATA] = function (chunk){
-    buffer = expandAndCopy(buffer, chunk)
+    var expectedLength = curLength - (buffer ? buffer.length : 0);
+    var lastChunk = chunk.slice(expectedLength)
+    buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
     if(buffer.length < curLength) return
 
-    //console.log("[INFO] Read Socket: " + curRef + " Length: " + curLength + " Buffer " + buffer)
-    var newBuf = buffer.slice(0, curLength)
+    console.log("[INFO] Read Socket: " + curRef + " Length: " + curLength + " Buffer " + buffer)
+    //var newBuf = buffer.slice(0, curLength)
     //buffer.copy(newBuf, 0, 0, curLength)
     if(curSocket)
-      curSocket.write(newBuf)
+      curSocket.write(buffer)
 
-    buffer = buffer.slice(curLength)
     curState = STATES.STARTED
     curLength = 0
 
-    if(buffer.length > 0){
-      var newChunk = buffer
-      buffer = null
-      onClientData(newChunk)
+    buffer = null
+    if(lastChunk && lastChunk.length > 0){
+      onClientData(lastChunk)
     }
   }
 }
@@ -218,8 +218,8 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     //tmpChunk.copy(buf, 7)
     buffers[destRef].push([buf, tmpChunk])
 
-    //console.log("[INFO] Write Socket: " + destRef + " Length: " + chunk.length + " Buffer " + buf)
     ondata(buf)*/
+    console.log("[INFO] Write Socket: " + destRef + " Length: " + chunk.length + " Buffer " + buf + chunk)
   })
 
   dest.on('drain', function() {
