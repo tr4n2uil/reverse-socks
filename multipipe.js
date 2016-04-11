@@ -46,7 +46,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     buffers = dest.buffers
 
   function onClientData(chunk) {
-    console.log("Chunk", curState, chunk);
+    //console.log("Chunk", curState, chunk);
     handlers[curState](chunk)
   }
 
