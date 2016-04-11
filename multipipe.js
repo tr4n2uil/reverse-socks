@@ -70,7 +70,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     //console.log("got curRef", curRef)
     if(typeof sockets[curRef] == "undefined" && dest.create){
       sockets[curRef] = dest.create(curRef);
-      buffers[curRef] = [];
+      //buffers[curRef] = [];
     }
     curSocket = sockets[curRef];
 
@@ -80,14 +80,14 @@ exports.readMultiPipe = function(source, dest, handshake){
         console.log("[INFO] Read Socket: " + curRef + " End")
         if(curSocket) curSocket.end()
         delete sockets[curRef]
-        delete buffers[curRef]
+        //delete buffers[curRef]
         break
 
       case CODES.REMOTE_ERROR:
         console.log("[INFO] Read Socket: " + curRef + " Error")
         if(curSocket) curSocket.destroy()
         delete sockets[curRef]
-        delete buffers[curRef]
+        //delete buffers[curRef]
         break
 
       case CODES.REMOTE_DATA:
@@ -127,8 +127,8 @@ exports.readMultiPipe = function(source, dest, handshake){
     if(buffer.length < curLength) return
 
     //console.log("[INFO] Read Socket: " + curRef + " Length: " + curLength + " Buffer " + buffer)
-    var newBuf = new Buffer(curLength)
-    buffer.copy(newBuf, 0, 0, curLength)
+    var newBuf = buffer.slice(0, curLength)
+    //buffer.copy(newBuf, 0, 0, curLength)
     if(curSocket)
       curSocket.write(newBuf)
 
@@ -147,24 +147,24 @@ exports.readMultiPipe = function(source, dest, handshake){
 exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
   function ondata(chunk) {
     if (dest.writable) {
-      var next = false
-      for(var i in buffers){
-        if(buffers[i].length){
-          var buf = buffers[i].shift()
-          if(Array.isArray(buf)){
-            dest.write(buf[0])
-            dest.write(buf[1])
-          }
-          else 
-            dest.write(buf)
-          if(buffers[i].length) next = true
-        }
-      }
-      if(next) setTimeout(ondata, 0)
-      // if (false === dest.write(chunk) && source.pause) {
-      //   console.log("Pausing")
-      //   source.pause();
+      // var next = false
+      // for(var i in buffers){
+      //   if(buffers[i].length){
+      //     var buf = buffers[i].shift()
+      //     if(Array.isArray(buf)){
+      //       dest.write(buf[0])
+      //       dest.write(buf[1])
+      //     }
+      //     else 
+      //       dest.write(buf)
+      //     if(buffers[i].length) next = true
+      //   }
       // }
+      // if(next) setTimeout(ondata, 0)
+      if (false === dest.write(chunk) && source.pause) {
+        console.log("Pausing")
+        source.pause();
+      }
     }
   }
 
@@ -175,9 +175,9 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
 
     console.log("[INFO] Write Socket: " + destRef + " End")
     ondata(buf)
-    buffers[destRef].push(buf);
+    //buffers[destRef].push(buf);
     delete sockets[destRef]
-    delete buffers[destRef]
+    //delete buffers[destRef]
   })
   
   source.on('error', function(err){
@@ -187,13 +187,20 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
 
     console.log("[INFO] Write Socket: " + destRef + " Error :" + err)
     ondata(buf)
-    buffers[destRef].push(buf);
+    //buffers[destRef].push(buf);
     delete sockets[destRef]
-    delete buffers[destRef]
+    //delete buffers[destRef]
   })
 
   source.on('data', function(chunk){
-    var j = chunk.length/2;
+    var buf = new Buffer(7);
+    buf.writeUInt8(CODES.REMOTE_DATA, 0);
+    buf.writeUInt32BE(destRef, 1);
+    buf.writeUInt16BE(chunk.length, 5);
+    ondata(buf)
+    ondata(chunk)
+
+    /*var j = chunk.length/2;
 
     var tmpChunk = chunk.slice(0,j);
     var buf = new Buffer(7);
@@ -212,13 +219,13 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     buffers[destRef].push([buf, tmpChunk])
 
     //console.log("[INFO] Write Socket: " + destRef + " Length: " + chunk.length + " Buffer " + buf)
-    ondata(buf)
+    ondata(buf)*/
   })
 
-  // dest.on('drain', function() {
-  //   if (source.readable && source.resume) {
-  //     console.log("Resuming")
-  //     source.resume();
-  //   }
-  // });
+  dest.on('drain', function() {
+    if (source.readable && source.resume) {
+      console.log("Resuming")
+      source.resume();
+    }
+  });
 }
