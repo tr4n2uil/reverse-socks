@@ -22,7 +22,7 @@ var ERRORS = {
 }
 exports.ERRORS = ERRORS
 
-var load = 255;
+var load = 2048;
 
 var expandAndCopy = function(old, newer) {
   if(!old) return newer;
@@ -108,13 +108,13 @@ exports.readMultiPipe = function(source, dest, handshake){
 
   handlers[STATES.LENGTH] = function (chunk){
     buffer = expandAndCopy(buffer, chunk)
-    if(buffer.length < 1) return
+    if(buffer.length < 2) return
 
-    curLength = buffer.readUInt8(0)
+    curLength = buffer.readUInt16BE(0)
     curState++
 
     //console.log("got curLength", curLength)
-    buffer = buffer.slice(1)
+    buffer = buffer.slice(2)
     if(buffer.length > 0){
       var newChunk = buffer
       buffer = null
@@ -192,21 +192,21 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
       var i,j;
       for (i=0, j=chunk.length; i<j; i+=load) {
         var tmpChunk = chunk.slice(i,i+load);
-        var buf = new Buffer(6 + tmpChunk.length);
+        var buf = new Buffer(7 + tmpChunk.length);
         buf.writeUInt8(CODES.REMOTE_DATA, 0);
         buf.writeUInt32BE(destRef, 1);
-        buf.writeUInt8(tmpChunk.length, 5);
-        tmpChunk.copy(buf, 6)
+        buf.writeUInt16BE(tmpChunk.length, 5);
+        tmpChunk.copy(buf, 7)
 
         buffers[destRef].push(buf);
       }
     }
     else {
-      var buf = new Buffer(6 + chunk.length);
+      var buf = new Buffer(7 + chunk.length);
       buf.writeUInt8(CODES.REMOTE_DATA, 0);
       buf.writeUInt32BE(destRef, 1);
-      buf.writeUInt8(chunk.length, 5);
-      chunk.copy(buf, 6)
+      buf.writeUInt16BE(chunk.length, 5);
+      chunk.copy(buf, 7)
       buffers[destRef].push(buf)
     }
 
