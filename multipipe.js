@@ -34,6 +34,30 @@ var expandAndCopy = function(old, newer) {
 }
 exports.expandAndCopy = expandAndCopy;
 
+var writeData = function(chunk, dest, source) {
+  if (dest.writable) {
+    // var next = false
+    // for(var i in buffers){
+    //   if(buffers[i].length){
+    //     var buf = buffers[i].shift()
+    //     if(Array.isArray(buf)){
+    //       dest.write(buf[0])
+    //       dest.write(buf[1])
+    //     }
+    //     else 
+    //       dest.write(buf)
+    //     if(buffers[i].length) next = true
+    //   }
+    // }
+    // if(next) setTimeout(ondata, 0)
+    if (false === dest.write(chunk) && source.pause) {
+      console.log("Pausing")
+      source.pause();
+    }
+  }
+}
+exports.writeData = writeData;
+
 exports.readMultiPipe = function(source, dest, handshake){
   var curState = STATES.HANDSHAKE,
     curRef = 0,
@@ -132,7 +156,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     //var newBuf = buffer.slice(0, curLength)
     //buffer.copy(newBuf, 0, 0, curLength)
     if(curSocket)
-      curSocket.write(buffer)
+      writeData(buffer, curSocket, source)
 
     curState = STATES.STARTED
     curLength = 0
@@ -145,36 +169,13 @@ exports.readMultiPipe = function(source, dest, handshake){
 }
 
 exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
-  function ondata(chunk) {
-    if (dest.writable) {
-      // var next = false
-      // for(var i in buffers){
-      //   if(buffers[i].length){
-      //     var buf = buffers[i].shift()
-      //     if(Array.isArray(buf)){
-      //       dest.write(buf[0])
-      //       dest.write(buf[1])
-      //     }
-      //     else 
-      //       dest.write(buf)
-      //     if(buffers[i].length) next = true
-      //   }
-      // }
-      // if(next) setTimeout(ondata, 0)
-      if (false === dest.write(chunk) && source.pause) {
-        console.log("Pausing")
-        source.pause();
-      }
-    }
-  }
-
   source.on('end', function(){
     var buf = new Buffer(5);
     buf.writeUInt8(CODES.REMOTE_END, 0);
     buf.writeUInt32BE(destRef, 1);
 
     console.log("[INFO] Write Socket: " + destRef + " End")
-    ondata(buf)
+    writeData(buf, dest, source)
     //buffers[destRef].push(buf);
     delete sockets[destRef]
     //delete buffers[destRef]
@@ -186,7 +187,7 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     buf.writeUInt32BE(destRef, 1);
 
     console.log("[INFO] Write Socket: " + destRef + " Error :" + err)
-    ondata(buf)
+    writeData(buf, dest, source)
     //buffers[destRef].push(buf);
     delete sockets[destRef]
     //delete buffers[destRef]
@@ -197,8 +198,8 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     buf.writeUInt8(CODES.REMOTE_DATA, 0);
     buf.writeUInt32BE(destRef, 1);
     buf.writeUInt16BE(chunk.length, 5);
-    ondata(buf)
-    ondata(chunk)
+    writeData(buf, dest, source)
+    writeData(chunk, dest, source)
 
     /*var j = chunk.length/2;
 

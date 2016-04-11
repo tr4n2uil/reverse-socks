@@ -47,6 +47,12 @@ var remote = net.createConnection(listenerPort, listenerHost, function() {
       })
 
       multipipe.writeMultiPipe(client, remote, curRef, dest.sockets, dest.buffers)
+      client.on('drain', function() {
+        if (remote.readable && remote.resume) {
+          console.log("Resuming")
+          remote.resume();
+        }
+      });
       return client
     }
   }
