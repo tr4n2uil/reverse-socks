@@ -50,7 +50,17 @@ var writeData = function(chunk, dest, source) {
     //   }
     // }
     // if(next) setTimeout(ondata, 0)
-    if (false === dest.write(chunk) && source.pause) {
+    if(dest.last) {
+      dest.write(dest.last)
+      dest.last = null
+    }
+    if(chunk && chunk.length < 512){
+      dest.last = chunk
+      return setTimeout(function(){
+        writeData(null, dest, source)
+      }, 5)
+    }
+    if (chunk && false === dest.write(chunk) && source.pause) {
       console.log("Pausing")
       //source.pause();
     }
