@@ -52,7 +52,7 @@ var writeData = function(chunk, dest, source) {
     // if(next) setTimeout(ondata, 0)
     if (false === dest.write(chunk) && source.pause) {
       console.log("Pausing")
-      source.pause();
+      //source.pause();
     }
   }
 }
@@ -70,6 +70,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     buffers = dest.buffers
 
   function onClientData(chunk) {
+    source.pause()
     //console.log("Chunk", curState, chunk);
     handlers[curState](chunk)
   }
@@ -84,14 +85,16 @@ exports.readMultiPipe = function(source, dest, handshake){
       buffer = null
       onClientData(newChunk)
     }
+    else {
+      source.resume()
+    }
   }
 
   handlers[STATES.STARTED] = function (chunk){
     var expectedLength = 5 - (buffer ? buffer.length : 0);
     var lastChunk = chunk.slice(expectedLength)
     buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
-    if(buffer.length < 5) return
-    source.pause()
+    if(buffer.length < 5) return source.resume()
 
     curRef = buffer.readUInt32BE(1)
     //console.log("got curRef", curRef, buffer, lastChunk)
@@ -138,8 +141,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     var expectedLength = 2 - (buffer ? buffer.length : 0);
     var lastChunk = chunk.slice(expectedLength)
     buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
-    if(buffer.length < 2) return
-    source.pause()
+    if(buffer.length < 2) return source.resume()
 
     curLength = buffer.readUInt16BE(0)
     curState++
@@ -158,8 +160,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     var expectedLength = curLength - (buffer ? buffer.length : 0);
     var lastChunk = chunk.slice(expectedLength)
     buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
-    if(buffer.length < curLength) return
-    source.pause()
+    if(buffer.length < curLength) return source.resume()
     //console.log("[INFO] Read Socket: " + curRef + " Length: " + curLength + " Buffer " + buffer)
     //var newBuf = buffer.slice(0, curLength)
     //buffer.copy(newBuf, 0, 0, curLength)
@@ -239,7 +240,7 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
   dest.on('drain', function() {
     //if (source.readable && source.resume) {
       console.log("Resuming")
-      source.resume();
+      //source.resume();
     //}
   });
 }
