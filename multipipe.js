@@ -96,7 +96,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     var lastChunk = chunk.slice(expectedLength)
     buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
     if(buffer.length < 5) return
-    source.pause()
+    //source.pause()
 
     curRef = buffer.readUInt32BE(1)
     //console.log("got curRef", curRef, buffer, lastChunk)
@@ -149,7 +149,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     var lastChunk = chunk.slice(expectedLength)
     buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
     if(buffer.length < 2) return
-    source.pause()
+    //source.pause()
 
     curLength = buffer.readUInt16BE(0)
     curState++
@@ -236,7 +236,7 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     buf.writeUInt16BE(chunk.length, 5);
     writeData(buf, dest, source)
     writeData(chunk, dest, source)
-    source.pause()
+    //source.pause()
 
     /*var j = chunk.length/2;
 
