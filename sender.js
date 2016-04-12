@@ -1,4 +1,5 @@
 var net = require('net'),
+    stream = require('stream'),
     multipipe = require('./multipipe');
 
 var senderPort = process.argv[2];
@@ -53,9 +54,18 @@ var remote = net.createConnection(listenerPort, listenerHost, function() {
           remote.resume();
         }
       });
-      return client
+
+      var clientStream = new stream.PassThrough({ highWaterMark: 1024 })
+      clientStream.pipe(client)
+      client.pipe(clientStream)
+
+      return clientStream
     }
   }
+
+  /*var remoteStream = new stream.PassThrough({ highWaterMark: 1024 })
+  remoteStream.pipe(remote)
+  remote.pipe(remoteStream)*/
 
   multipipe.readMultiPipe(remote, dest, function(buffer, chunk){
     buffer = multipipe.expandAndCopy(buffer, chunk)
