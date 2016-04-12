@@ -53,8 +53,7 @@ var writeData = function(chunk, dest, source) {
     // if(next) setTimeout(ondata, 0)
     if (false === dest.write(chunk) && source.pause) {
       console.log("Pausing")
-      source.pause();
-      source.emit('pauseAll')
+      //source.pause();
     }
   }
 }

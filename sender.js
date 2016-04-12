@@ -57,18 +57,6 @@ var remote = net.createConnection(listenerPort, listenerHost, function() {
     }
   }
 
-  remote.on('pauseAll', function(){
-    for(var i in dest.sockets){
-      dest.sockets[i].pause()
-    }
-  })
-
-  remote.on('drain', function(){
-    for(var i in dest.sockets){
-      dest.sockets[i].resume()
-    }
-  })
-
   multipipe.readMultiPipe(remote, dest, function(buffer, chunk){
     buffer = multipipe.expandAndCopy(buffer, chunk)
     if(buffer.length < 2) return
