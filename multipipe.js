@@ -109,21 +109,21 @@ exports.readMultiPipe = function(source, dest, handshake){
     //console.log("checking event type", buffer[0])
     switch(buffer[0]){
       case CODES.REMOTE_END:
-        console.log("[INFO] Read Socket: " + curRef + " End")
+        console.log("[INFO] Read Socket: " + curRef + " End " + Object.keys(sockets).length)
         if(curSocket) curSocket.end()
         delete sockets[curRef]
         //delete buffers[curRef]
         break
 
       case CODES.REMOTE_ERROR:
-        console.log("[INFO] Read Socket: " + curRef + " Error")
+        console.log("[INFO] Read Socket: " + curRef + " Error " + Object.keys(sockets).length)
         if(curSocket) curSocket.destroy()
         delete sockets[curRef]
         //delete buffers[curRef]
         break
 
       case CODES.REMOTE_DRAIN:
-        console.log("[INFO] Read Socket: " + curRef + " Drain")
+        console.log("[INFO] Read Socket: " + curRef + " Drain " + Object.keys(sockets).length)
         if(curSocket) curSocket.resume()
         break
 
