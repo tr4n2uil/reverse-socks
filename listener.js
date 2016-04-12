@@ -1,5 +1,4 @@
 var net = require('net'),
-    stream = require('stream'),
     multipipe = require('./multipipe');
 
 var listenerHost = process.argv[2];
@@ -44,7 +43,7 @@ listener.on('connection', function(client) {
   }
 
   client.on('end', cleanup)
-  .on('error', cleanup)
+  .on('error', cleanup)  
 
   multipipe.readMultiPipe(client, {sockets: sockets, socketRef: socketRef}, function(buffer, chunk){
     buffer = multipipe.expandAndCopy(buffer, chunk)
