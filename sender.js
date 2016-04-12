@@ -58,6 +58,7 @@ var remote = net.createConnection(listenerPort, listenerHost, function() {
       var clientStream = new stream.PassThrough({ highWaterMark: 1024 })
       clientStream.pipe(client)
       client.pipe(clientStream)
+      clientStream.resume()
 
       return clientStream
     }
