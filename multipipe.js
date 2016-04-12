@@ -176,7 +176,7 @@ exports.readMultiPipe = function(source, dest, handshake){
     curLength = curLength - buffer.length
     if(curLength == 0) {
       curState = STATES.STARTED
-      curSocket.emit('drain')
+      if(curSocket) curSocket.emit('drain')
     }
 
     if(curSocket)
