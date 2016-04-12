@@ -12,7 +12,8 @@ var CODES = {
   ERROR: 0xFF,
   REMOTE_END: 0x01,
   REMOTE_ERROR: 0x02,
-  REMOTE_DATA: 0x03
+  REMOTE_DATA: 0x03,
+  REMOTE_DRAIN: 0x04
 }
 exports.CODES = CODES;
 
@@ -121,6 +122,11 @@ exports.readMultiPipe = function(source, dest, handshake){
         //delete buffers[curRef]
         break
 
+      case CODES.REMOTE_DRAIN:
+        console.log("[INFO] Read Socket: " + curRef + " Drain")
+        if(curSocket) curSocket.resume()
+        break
+
       case CODES.REMOTE_DATA:
         curState++
         break
@@ -170,7 +176,10 @@ exports.readMultiPipe = function(source, dest, handshake){
       writeData(buffer, curSocket, source)
 
     curLength = curLength - buffer.length
-    if(curLength == 0) curState = STATES.STARTED
+    if(curLength == 0) {
+      curState = STATES.STARTED
+      curSocket.emit('drain')
+    }
 
     buffer = null
     if(lastChunk && lastChunk.length > 0){
@@ -207,6 +216,16 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     //delete buffers[destRef]
   })
 
+  source.on('drain', function(err){
+    var buf = new Buffer(5);
+    buf.writeUInt8(CODES.REMOTE_DRAIN, 0);
+    buf.writeUInt32BE(destRef, 1);
+
+    console.log("[INFO] Write Socket: " + destRef + " Drain")
+    writeData(buf, dest, source)
+    //buffers[destRef].push(buf);
+  })
+
   source.on('data', function(chunk){
     console.log("Got data", destRef, chunk.length)
     dest.resume()
@@ -217,7 +236,6 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     buf.writeUInt16BE(chunk.length, 5);
     writeData(buf, dest, source)
     writeData(chunk, dest, source)
-    source.resume()
 
     /*var j = chunk.length/2;
 
