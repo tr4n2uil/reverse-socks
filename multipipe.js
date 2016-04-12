@@ -172,14 +172,15 @@ exports.readMultiPipe = function(source, dest, handshake){
     //console.log("[INFO] Read Socket: " + curRef + " Length: " + curLength + " Buffer " + buffer)
     //var newBuf = buffer.slice(0, curLength)
     //buffer.copy(newBuf, 0, 0, curLength)
-    if(curSocket)
-      writeData(buffer, curSocket, source)
 
     curLength = curLength - buffer.length
     if(curLength == 0) {
       curState = STATES.STARTED
       curSocket.emit('drain')
     }
+
+    if(curSocket)
+      writeData(buffer, curSocket, source)
 
     buffer = null
     if(lastChunk && lastChunk.length > 0){
@@ -228,7 +229,7 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
 
   source.on('data', function(chunk){
     console.log("Got data", destRef, chunk.length)
-    //dest.resume()
+    dest.resume()
     var buf = new Buffer(7);
     buf.writeUInt8(CODES.REMOTE_DATA, 0);
     buf.writeUInt32BE(destRef, 1);
