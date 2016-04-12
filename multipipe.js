@@ -228,14 +228,14 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
 
   source.on('data', function(chunk){
     console.log("Got data", destRef, chunk.length)
-    dest.resume()
-    source.pause()
+    //dest.resume()
     var buf = new Buffer(7);
     buf.writeUInt8(CODES.REMOTE_DATA, 0);
     buf.writeUInt32BE(destRef, 1);
     buf.writeUInt16BE(chunk.length, 5);
     writeData(buf, dest, source)
     writeData(chunk, dest, source)
+    source.pause()
 
     /*var j = chunk.length/2;
 
