@@ -25,6 +25,11 @@ var ERRORS = {
   PORT: 0x01
 }
 
+var remotes = {}
+var listening = {}
+var remoteIndex = {}
+var dests = {}
+
 var listener = net.createServer()
 
 listener.on('listening', function() {
@@ -33,10 +38,7 @@ listener.on('listening', function() {
 })
 
 listener.on('connection', function(client) {
-  var server = net.createServer(),
-    sockets = {},
-    socketRef = 0,
-    buffers = {}
+  var server = null
 
   function cleanup(){
     server.close();
@@ -45,7 +47,7 @@ listener.on('connection', function(client) {
   client.on('end', cleanup)
   .on('error', cleanup)  
 
-  multipipe.readMultiPipe(client, {sockets: sockets, socketRef: socketRef}, function(buffer, chunk){
+  multipipe.readMultiPipe(client, dests, function(buffer, chunk){
     buffer = multipipe.expandAndCopy(buffer, chunk)
     if(buffer.length < 4) return
 
@@ -62,22 +64,41 @@ listener.on('connection', function(client) {
       return false
     }
 
-    server.listen(serverPort, listenerHost)
+    client.serverPort = serverPort
+    dests[serverPort] = {sockets: {}, socketRef: 0, buffers: {}}
+    if(typeof remotes[serverPort] == "undefined") {
+      remotes[serverPort] = []
+      server = net.createServer(),
+      server.listen(serverPort, listenerHost)
+
+      server.on('listening', function() {
+        var addr = server.address()
+        console.log('client server listening on %s:%s', addr.address, addr.port)
+        //client.write(new Buffer([CODES.SUCCESS, 0x00]));
+        listening[client.serverPort] = true
+        for(var i in remotes[client.serverPort]){
+          remotes[client.serverPort][i].write(new Buffer([CODES.SUCCESS, 0x00]));
+        }
+      })
+
+      server.on('connection', function(remote) {
+        var remoteRef = dests[serverPort].socketRef++;
+        dests[serverPort].sockets[remoteRef] = remote;
+        dests[serverPort].buffers[remoteRef] = [];
+
+        remoteIndex[client.serverPort] = remoteIndex[client.serverPort] || 0
+        remoteIndex[client.serverPort]++
+        remoteIndex[client.serverPort] = remoteIndex[client.serverPort] % remotes[client.serverPort].length
+        console.log("Using remote: ", remoteIndex[client.serverPort])
+        multipipe.writeMultiPipe(remote, remotes[client.serverPort][remoteIndex[client.serverPort]], remoteRef, dests[serverPort].sockets, dests[serverPort].buffers)
+      })
+    }
+    else if(listening[serverPort]) {
+      client.write(new Buffer([CODES.SUCCESS, 0x00]));
+    }
+
+    remotes[serverPort].push(client)
     return true
-  })
-
-  server.on('listening', function() {
-    var addr = server.address()
-    console.log('client server listening on %s:%s', addr.address, addr.port)
-    client.write(new Buffer([CODES.SUCCESS, 0x00]));
-  })
-
-  server.on('connection', function(remote) {
-    var remoteRef = ++socketRef;
-    sockets[remoteRef] = remote;
-    buffers[remoteRef] = [];
-
-    multipipe.writeMultiPipe(remote, client, remoteRef, sockets, buffers)
   })
 })
 
