@@ -72,8 +72,8 @@ exports.readMultiPipe = function(source, dests, handshake){
     //buffers = dest.buffers
 
   function onClientData(chunk) {
-    console.log("Got other data", chunk.length)
-    console.log("Chunk", curState, chunk);
+    //console.log("Got other data", chunk.length)
+    //console.log("Chunk", curState, chunk);
     handlers[curState](chunk)
   }
 
@@ -102,14 +102,14 @@ exports.readMultiPipe = function(source, dests, handshake){
     //source.pause()
 
     curRef = buffer.readUInt32BE(1)
-    console.log("got curRef", curRef, buffer, lastChunk)
+    //console.log("got curRef", curRef, buffer, lastChunk)
     if(typeof sockets[curRef] == "undefined" && dest.create){
       sockets[curRef] = dest.create(curRef);
       //buffers[curRef] = [];
     }
     curSocket = sockets[curRef];
 
-    console.log("checking event type", buffer[0])
+    //console.log("checking event type", buffer[0])
     switch(buffer[0]){
       case CODES.REMOTE_END:
         console.log("[INFO] Read Socket: " + curRef + " End " + Object.keys(sockets).length)
@@ -157,7 +157,7 @@ exports.readMultiPipe = function(source, dests, handshake){
     curLength = buffer.readUInt16BE(0)
     curState++
 
-    console.log("got curLength", curLength, buffer, lastChunk)
+    //console.log("got curLength", curLength, buffer, lastChunk)
     buffer = null
     if(lastChunk && lastChunk.length > 0){
       onClientData(lastChunk)
@@ -172,7 +172,7 @@ exports.readMultiPipe = function(source, dests, handshake){
     var lastChunk = chunk.slice(expectedLength)
     buffer = expandAndCopy(buffer, chunk.slice(0, expectedLength))
     //if(buffer.length < curLength) return source.resume()
-    console.log("[INFO] Read Socket: " + curRef + " Length: " + curLength + " Buffer " + buffer)
+    //console.log("[INFO] Read Socket: " + curRef + " Length: " + curLength + " Buffer " + buffer)
     //var newBuf = buffer.slice(0, curLength)
     //buffer.copy(newBuf, 0, 0, curLength)
 
@@ -225,7 +225,7 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     buf.writeUInt8(CODES.REMOTE_DRAIN, 0);
     buf.writeUInt32BE(destRef, 1);
 
-    console.log("[INFO] Write Socket: " + destRef + " Drain")
+    //console.log("[INFO] Write Socket: " + destRef + " Drain")
     writeData(buf, dest, source)
     //buffers[destRef].push(buf);
   })
@@ -261,7 +261,7 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     buffers[destRef].push([buf, tmpChunk])
 
     ondata(buf)*/
-    console.log("[INFO] Write Socket: " + destRef + " Length: " + chunk.length + " Buffer " + chunk)
+    //console.log("[INFO] Write Socket: " + destRef + " Length: " + chunk.length + " Buffer " + chunk)
   })
 
   /*dest.on('drain', function() {
