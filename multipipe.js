@@ -179,7 +179,7 @@ exports.readMultiPipe = function(source, dests, handshake){
     curLength = curLength - buffer.length
     if(curLength == 0) {
       curState = STATES.STARTED
-      if(curSocket) curSocket.emit('drain')
+      //if(curSocket) curSocket.emit('drain')
     }
 
     if(curSocket)
@@ -220,15 +220,15 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     //delete buffers[destRef]
   })
 
-  source.on('drain', function(err){
-    var buf = new Buffer(5);
-    buf.writeUInt8(CODES.REMOTE_DRAIN, 0);
-    buf.writeUInt32BE(destRef, 1);
+  // source.on('drain', function(err){
+  //   var buf = new Buffer(5);
+  //   buf.writeUInt8(CODES.REMOTE_DRAIN, 0);
+  //   buf.writeUInt32BE(destRef, 1);
 
-    //console.log("[INFO] Write Socket: " + destRef + " Drain")
-    writeData(buf, dest, source)
-    //buffers[destRef].push(buf);
-  })
+  //   //console.log("[INFO] Write Socket: " + destRef + " Drain")
+  //   writeData(buf, dest, source)
+  //   //buffers[destRef].push(buf);
+  // })
 
   source.on('data', function(chunk){
     console.log("Got data", destRef, chunk.length)
