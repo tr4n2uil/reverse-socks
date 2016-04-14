@@ -53,7 +53,7 @@ var writeData = function(chunk, dest, source) {
     // if(next) setTimeout(ondata, 0)
     if (false === dest.write(chunk) && source.pause) {
       console.log("Pausing")
-      source.pause();
+      //source.pause();
     }
   }
 }
@@ -264,10 +264,10 @@ exports.writeMultiPipe = function(source, dest, destRef, sockets, buffers){
     //console.log("[INFO] Write Socket: " + destRef + " Length: " + chunk.length + " Buffer " + chunk)
   })
 
-  dest.on('drain', function() {
-    if (source.readable && source.resume) {
+  /*dest.on('drain', function() {
+    //if (source.readable && source.resume) {
       console.log("Resuming")
-      source.resume();
-    }
-  });
+      //source.resume();
+    //}
+  });*/
 }
